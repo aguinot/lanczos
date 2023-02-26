@@ -1,2 +1,0 @@
-# lanczos
-lanczos resampling
