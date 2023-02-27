@@ -8,7 +8,23 @@ Redistribution and repackaging of code by Dustin Lang in
 under the 3-clause BSD-style license.
 More flexibility for astropy WCS and documentated added by David Nidever.
 
+Install
+-------
 
+Lanczos can be most easily installed using ``pip``.  This should automatically deal with all of the C compilations.
+
+.. code-block:: unix
+
+    pip install lanczos
+
+You can also git clone and python setup.
+
+.. code-block:: unix
+
+    git clone git@github.com:dnidever/lanczos.git
+    python setup.py install
+
+    
 Examples
 --------
 
