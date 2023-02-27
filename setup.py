@@ -13,12 +13,14 @@ class build_py(_build_py):
         return super().run()
 
 
-setup(
-    name='lanczos',
-    version='1.0.0',,
-    cmdclass={'build_py': build_py},
-    packages = ["lanczos"],
-    ext_modules=[
+setup(name='lanczos',
+      version='1.0.0',
+      author = 'David Nidever, Dustin Lang',
+      author_email = 'davidnidever@gmail.com',
+      url = 'https://github.com/dnidever/lanczos',
+      cmdclass={'build_py': build_py},
+      packages = ["lanczos"],
+      ext_modules=[
         Extension(
             'lanczos._lanczos',
             ['lanczos/lanczos3.i'],

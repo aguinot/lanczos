@@ -41,21 +41,14 @@ class WCSWrap():
         
 
 def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
-                      splineFallback=True,
-                      splineStep=25,
-                      splineMargin=12,
-                      table=True,
-                      cinterp=True,
-                      intType=np.int32):
-    '''
-    Returns (Yo,Xo, Yi,Xi, ims)
+                      splineFallback=True,splineStep=25,splineMargin=12,
+                      table=True,cinterp=True,intType=np.int32,oned=False):
+    """
+    Resample image with Lanczos using input and target WCS.
 
-    Use the results like:
+    When used with oned==True to return 1-D arrays
 
-    target[Yo,Xo] = nearest_neighbour[Yi,Xi]
-    # or
     target[Yo,Xo] = ims[i]
-
 
     raises NoOverlapError if the target and input WCSes do not
     overlap.  Raises SmallOverlapError if they do not overlap "enough"
@@ -71,26 +64,73 @@ def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
     The WCS function must support 1-d, broadcasting, vectorized
     pixel<->radec calls.
 
-    Limages: list of images to Lanczos-interpolate at the given Lanczos order.
-    If empty, just returns nearest-neighbour indices.
+    Parameters
+    ----------
+    targetwcs : wcs object
+       Target WCS object.  Can be astropy WCS object or any type
+         that obeys the above duck-typing rules.
+    wcs : wcs object
+       Input WCS object.  Can be astropy WCS object or any type
+         that obeys the above duck-typing rules.
+    Limages : list
+       List of input images to resample.
+    L : int, optional
+       Lanczos order (3 or 5).  Default is 3.
+    spline : bool, optional
+       Use a spline interpolator to reduce the number of WCS calls.
+         Default is True.
+    splineFallback : bool, optional
+       The spline requires a certain amount of spatial overlap.  With
+         splineFallback = True, fall back to non-spline version.
+         With splineFallback = False, just raises SmallOverlapError.
+         Default is True.
+    splineStep : int, optional
+       Step size for spline interpolation.  Default is 25.
+    splineMargin : int, optional
+       Side margins for spline interpolation.  Default is 12.
+    table : bool, optional
+       Use Lanczos look-up table.  Default is True.
+    cinterp : bool, optional
+       Use C extension for Lanczos interpolation. Default is True.
+    intType : type, optional
+       Type to return for integer pixel coordinates. Default is numpy.int32.
+    oned : bool, optional
+       Return 1-D arrays instead of 2-D images.  Default is False.
 
-    L: int, lanczos order
+    Returns
+    -------
+    iyo : numpy array
+       1-D array of Y-values for the resampled pixels in the output/target WCS.
+          Only if oned==True.
+    ixo : numpy array
+       1-D array of X-values for the resampled pixels in the output/target WCS.
+          Only if oned==True.
+    iyi : numpy array
+       1-D array of Y-values for the resampled pixels in the input WCS.
+          Only if oned==True.
+    ixi : numpy array
+       1-D array of X-values for the resampled pixels in the input WCS.
+          Only if oned==True.
+    rims : numpy array
+       List of the output resampled images.  If oned==True, then each element
+         is 1-D array of values.  If oned==False, then they are full 2-D image
+         arrays.
 
-    spline: bool: use a spline interpolator to reduce the number of
-    WCS calls.
+    Example
+    -------
 
-    splineFallback: bool: the spline requires a certain amount of
-    spatial overlap.  With splineFallback = True, fall back to
-    non-spline version.  With splineFallback = False, just raises
-    SmallOverlapError.
+    Return 2-D inages
 
-    splineStep: approximate grid size
+    ims = resample_with_wcs(targetwcs,wcs,images)
 
-    table: use Lanczos3 look-up table?
+    Return 1-D arrays
 
-    intType: type to return for integer pixel coordinates.
-    (however, Yi,Xi may still be returned as int32)
-    '''
+    iyo,ixo,iyi,ixi,rims = resample_with_wcs(targetwcs,wcs,images)
+
+
+    """
+
+    
     ### DEBUG
     #ps = PlotSequence('resample')
     ps = None
@@ -310,7 +350,6 @@ def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
         laccs = [np.zeros(nn, np.float32) for im in Limages]
 
         if cinterp:
-            #from astrometry.util.util import lanczos3_interpolate
             from lanczos import lanczos3_interpolate            
             rtn = lanczos3_interpolate(ixi, iyi, dx, dy, laccs,
                                        [lim.astype(np.float32) for lim in Limages])
@@ -320,8 +359,18 @@ def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
     else:
         rims = []
 
-    return (iyo,ixo, iyi,ixi, rims)  # i-input, o-output
-
+    # 1-D output
+    if oned:
+        return (iyo,ixo, iyi,ixi, rims)  # i-input, o-output
+    # 2-D output
+    else:
+        rims2 = []
+        for i in range(len(Limages)):
+            newim = np.zeros([H,W],Limages[i].dtype)
+            newim[iyo,ixo] = rims[i]
+            rims2.append(newim)
+        return rims2
+    
 
 def _lanczos_interpolate(L, ixi, iyi, dx, dy, laccs, limages,
                          table=True):
