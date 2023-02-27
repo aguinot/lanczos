@@ -17,7 +17,7 @@ Lanczos can be most easily installed using ``pip``.  This should automatically d
 
     pip install lanczos
 
-You can also git clone and python setup.
+You can also git clone and python setup install.
 
 .. code-block:: unix
 
