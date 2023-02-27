@@ -14,7 +14,7 @@ class build_py(_build_py):
 
 
 setup(name='lanczos',
-      version='1.0.0',
+      version='1.0.1',
       author = 'David Nidever, Dustin Lang',
       author_email = 'davidnidever@gmail.com',
       url = 'https://github.com/dnidever/lanczos',
