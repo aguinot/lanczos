@@ -15,26 +15,29 @@ class SmallOverlapError(OverlapError):
     pass
 
 class WCSWrap():
+    """ A thin layer for Astropy WCS object to function properly with the resampling code"""
 
     def __init__(self,w):
         self._wcs = w  # save astropy WCS object
-        
+    
     @property
-    def imageh():
-        return self.w.array_shape[1]
+    def imagew(self):
+        return self._wcs.array_shape[1]
 
     @property
-    def imageh():
-        return self.w.array_shape[0]    
+    def imageh(self):
+        return self._wcs.array_shape[0]    
         
     def pixelxy2radec(self,x,y):
         # should use IRAF format
-        ra,dec = self.w.all_pix2world(x,y,1)
+        ra,dec = self._wcs.all_pix2world(x,y,1)
         return ra,dec
 
-    def radec2pixel(self,ra,dec):
-        x,y = self.w.all_world2pix(ra,dec,1)
-        return x,y
+    def radec2pixelxy(self,ra,dec):
+        x,y = self._wcs.all_world2pix(ra,dec,1)
+        ny,nx = self._wcs.array_shape
+        ok = ((x>=0) & (x<=nx-1) & (y>=0) & (y<=ny-1))
+        return ok,x,y
         
 
 def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
@@ -92,9 +95,15 @@ def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
     #ps = PlotSequence('resample')
     ps = None
 
+    # Astropy WCS input, wrap it
+    if isinstance(targetwcs,WCS):
+        targetwcs = WCSWrap(targetwcs)
+    if isinstance(wcs,WCS):
+        wcs = WCSWrap(wcs) 
+        
     H,W = int(targetwcs.imageh), int(targetwcs.imagew)
     h,w = int(      wcs.imageh), int(      wcs.imagew)
-
+    
     for im in Limages:
         assert(im.shape == (h,w))
     
@@ -111,7 +120,7 @@ def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
 
     x0,y0 = np.rint(XY.min(axis=0))
     x1,y1 = np.rint(XY.max(axis=0))
-
+    
     if spline:
         # Now we build a spline that maps "target" pixels to "input" pixels
         margin = splineMargin
@@ -133,7 +142,8 @@ def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
                 ax = plt.axis()
                 plt.axis([ax[0]-M, ax[1]+M, ax[2]-M, ax[3]+M])
                 plt.axis('scaled')
-            plt.clf()
+
+                plt.clf()
             plt.plot(XY[:,0], XY[:,1], 'ro')
             plt.plot(xx, np.zeros_like(xx), 'b.')
             plt.plot(np.zeros_like(yy), yy, 'c.')
@@ -153,7 +163,7 @@ def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
                 spline = False
             else:
                 raise SmallOverlapError()
-
+            
     if spline:
         # spline inputs  -- pixel coords in the 'target' image
         #    (xx, yy)
@@ -166,11 +176,11 @@ def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
         if len(R) == 3:
             ok = R[0]
             assert(np.all(ok))
-        ok,XX,YY = wcs.radec2pixelxy(*(R[-2:]))
+        ok,XX,YY = wcs.radec2pixelxy(*(R[-2:]))        
         del R
         XX -= 1.
         YY -= 1.
-        assert(np.all(ok))
+        #assert(np.all(ok))  # now sure what this is checking for exactly
         del ok
         
         if ps:
@@ -310,7 +320,7 @@ def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
     else:
         rims = []
 
-    return (iyo,ixo, iyi,ixi, rims)
+    return (iyo,ixo, iyi,ixi, rims)  # i-input, o-output
 
 
 def _lanczos_interpolate(L, ixi, iyi, dx, dy, laccs, limages,

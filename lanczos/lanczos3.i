@@ -17,16 +17,10 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "os-features.h"
+
 #define true 1
 #define false 0
-
-// For sip.h
-static void checkorder(int i, int j) {
-    assert(i >= 0);
-    assert(i < SIP_MAXORDER);
-    assert(j >= 0);
-    assert(j < SIP_MAXORDER);
-}
 
 // From index.i:
 /**
