@@ -114,14 +114,18 @@ def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
     rims : numpy array
        List of the output resampled images.  If oned==True, then each element
          is 1-D array of values.  If oned==False, then they are full 2-D image
-         arrays.
+         arrays with non-overlapping pixels set to NaN.
+         Default is oned==False.
+    mask : numpy array
+       Boolean mask of which output pixels are covered.  Only returned if
+         oned==False.
 
     Example
     -------
 
-    Return 2-D inages
+    Return 2-D images
 
-    ims = resample_with_wcs(targetwcs,wcs,images)
+    ims,mask = resample_with_wcs(targetwcs,wcs,images)
 
     Return 1-D arrays
 
@@ -135,6 +139,12 @@ def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
     #ps = PlotSequence('resample')
     ps = None
 
+    # Make sure input Limages is a list or tuple
+    listinput = True
+    if type(Limages) is not list and type(Limages) is not tuple:
+        Limages = [Limages]
+        listinput = False
+        
     # Astropy WCS input, wrap it
     if isinstance(targetwcs,WCS):
         targetwcs = WCSWrap(targetwcs)
@@ -350,7 +360,7 @@ def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
         laccs = [np.zeros(nn, np.float32) for im in Limages]
 
         if cinterp:
-            from lanczos import lanczos3_interpolate            
+            from lanczos.lanczos import lanczos3_interpolate            
             rtn = lanczos3_interpolate(ixi, iyi, dx, dy, laccs,
                                        [lim.astype(np.float32) for lim in Limages])
         else:
@@ -365,11 +375,20 @@ def resample_with_wcs(targetwcs, wcs, Limages=[], L=3, spline=True,
     # 2-D output
     else:
         rims2 = []
+        masks = []
         for i in range(len(Limages)):
-            newim = np.zeros([H,W],Limages[i].dtype)
+            newim = np.zeros([H,W],Limages[i].dtype)+np.nan
             newim[iyo,ixo] = rims[i]
             rims2.append(newim)
-        return rims2
+            mask = np.zeros([H,W],bool)
+            mask[iyo,ixo] = True
+            masks.append(mask)
+        # Only one and list not input, strip outer list layer
+        if listinput==False:
+            rims2 = rims2[0]
+            masks = masks[0]
+
+        return rims2,masks
     
 
 def _lanczos_interpolate(L, ixi, iyi, dx, dy, laccs, limages,
