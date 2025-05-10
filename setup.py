@@ -4,8 +4,10 @@ import sys
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_py import build_py as _build_py
 
-from numpy.distutils.misc_util import get_numpy_include_dirs
-numpy_inc = get_numpy_include_dirs()
+#from numpy.distutils.misc_util import get_numpy_include_dirs
+#numpy_inc = get_numpy_include_dirs()
+from numpy import get_include
+numpy_inc = [get_include()]
 
 class build_py(_build_py):
     def run(self):

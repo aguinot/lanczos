@@ -108,7 +108,7 @@ long qidxfile_addr(qidxfile* qf) {
         printf("  descr kind: '%c'\n", desc->kind);
         printf("  descr type: '%c'\n", desc->type);
         printf("  descr byteorder: '%c'\n", desc->byteorder);
-        printf("  descr elsize: %i\n", desc->elsize);
+        // printf("  descr elsize: %i\n", desc->elsize);
     }
 
 
